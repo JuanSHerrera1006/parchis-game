@@ -1,34 +1,54 @@
+from board import Board
+from constants import CELL_SIZE
+from dragger import Dragger
 import pygame
-from constants import *
 
-class Game:
+class Game():
     def __init__(self):
-        pass
+        self.board = Board()
+        self.dragger = Dragger()
+        self.players = []
+        self.current_player = None
+        self.dice = []
+        self.clock = pygame.time.Clock()
 
-    def show_bg(self, surface):
-        for row in range(ROWS):
-            for col in range(COLS):
-                color = None
-                border_color = BLACK
+    def handle_events(self, screen):
+        board = self.board
+        dragger = self.dragger
 
-                if row < 7 and col < 7 or col >= 10 and col < 13 and row < 7:            
-                    color = RED
+        if dragger.dragging:
+            dragger.update_blit(screen)
 
-                elif row >= 16 and row <= ROWS - 1 and col < 7 or row >= 10 and row < 13 and col < 7:
-                    color = BLUE
+        for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    dragger.update_mouse(event.pos)
+                
+                clicked_row = dragger.mouseX // CELL_SIZE
+                clicked_col = dragger.mouseY // CELL_SIZE
 
-                elif col >= 16 and col <= COLS - 1 and row < 7 or col >= 16 and col <= COLS - 1 and row >= 10 and row < 13: 
-                    color = GREEN
+                if board.cells[clicked_row][clicked_col].has_piece():
+                    piece = board.cells[clicked_row][clicked_col].piece
+                    dragger.save_initial(event.pos)
+                    dragger.drag_piece(piece)
 
-                elif row >= 16 and row <= ROWS - 1 and col >= 16 or row >= 16 and row <= ROWS - 1 and col >= 10 and col < 13:
-                    color = YELLOW
-                else:
-                    color = WHITE
+            elif event.type == pygame.MOUSEMOTION:
+                if dragger.dragging:
+                    dragger.update_mouse(event.pos)
+                    self.render(screen)
+                    dragger.update_blit(screen)
+            
+            elif event.type == pygame.KEYUP:
+                pass
 
+            elif event.type == pygame.MOUSEBUTTONUP:
+                dragger.undrag_piece()
 
-                x = col * SQSIZE
-                y = row * SQSIZE
+            elif event.type == pygame.QUIT:
+                return False
+        pygame.display.update()
+        return True
 
-                rect = (x, y, SQSIZE, SQSIZE)
-                pygame.draw.rect(surface, border_color, rect)
-                pygame.draw.rect(surface, color, (x + 1, y + 1, SQSIZE - 2, SQSIZE - 2))
+    def render(self, screen):
+        self.board.render(screen, self.dragger)
+
