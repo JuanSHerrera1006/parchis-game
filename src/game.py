@@ -1,4 +1,4 @@
-from constants import CELL_SIZE, BOARD_MAP
+from constants import CELL_SIZE
 from player import Piece, Player, Dice
 from board import Board
 from dragger import Dragger
@@ -11,13 +11,16 @@ class Game():
     def __init__(self):
         self.players = [Player(1, "azul"), Player(2, "rojo"), Player(3, "verde"), Player(4, "amarillo")]
         self.board = Board(self.players)
-        self.dices = [Dice(6) for _ in range(2)]
+        self.dices = []
         self.dices_result = []
         self.dragger = Dragger()
         self.current_player = randint(0, 3)
         self.clock = pygame.time.Clock()
         self.popUp = Tk().wm_withdraw()
         self.roll_dices()
+
+    def set_dices(self, sides, n):
+        self.dices = [Dice(sides) for _ in range(n)]
 
     def next_turn(self):
         self.current_player = (self.current_player + 1) % 4
@@ -49,7 +52,6 @@ class Game():
                 if piece.state == Piece.STATE_CAPTURED:
                     piece.state = Piece.STATE_IN_GAME
                     self.board.move_piece(piece, (4, 17 + idx))
-                    print(piece.get_actual_pos())
                     return True
 
         elif player.color == "verde":
@@ -57,7 +59,6 @@ class Game():
                 if piece.state == Piece.STATE_CAPTURED:
                     piece.state = Piece.STATE_IN_GAME
                     self.board.move_piece(piece, (25, 12 - idx)) 
-                    print(piece.get_actual_pos())
                     return True
 
         elif player.color == "rojo":
@@ -65,7 +66,6 @@ class Game():
                 if piece.state == Piece.STATE_CAPTURED:
                     piece.state = Piece.STATE_IN_GAME
                     self.board.move_piece(piece, (12 - idx, 4))
-                    print(piece.get_actual_pos())
                     return True
 
         elif player.color == "amarillo":
@@ -73,7 +73,6 @@ class Game():
                 if piece.state == Piece.STATE_CAPTURED:
                     piece.state = Piece.STATE_IN_GAME
                     self.board.move_piece(piece, (17 + idx, 25))
-                    print(piece.get_actual_pos())
                     return True
         return False
 

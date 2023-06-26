@@ -1,4 +1,4 @@
-from player import Piece
+from player import Piece, Player
 from constants import *
 import pygame
 import os
@@ -84,16 +84,23 @@ class Board:
     def meta_move(self, dragger, valid_moves):
         piece = dragger.piece
         META_MAP = GOALS[piece.color]
-        cell_numb, _ = piece.get_actual_pos(valid_moves)
-        possible_mov = [(cell_numb + dice_result) for dice_result in valid_moves]
-        map_coord = [(i, META_MAP[i]) for i in possible_mov]
-         
+        cond = piece.acc >= 80
+        cell_numb, _ = piece.get_actual_pos(cond)
+        
+        if cell_numb == 10:
+            piece.state = Piece.STATE_OUT_GAME
+            return
+
+        possible_mov = [(cell_numb + dice_result) % META_CELLS[piece.color] for dice_result in valid_moves]
+        map_coord = [(None, None) if i > 10 else (i, META_MAP[i]) for i in possible_mov]
+
         drag_row = dragger.mouseX // CELL_SIZE
         drag_col = dragger.mouseY // CELL_SIZE
 
         for new_pos, coords in map_coord:
-            if new_pos >= 9:
-                pass
+            if new_pos == None and coords == None:
+                continue
+
             for coord in coords:
                 row = coord[0]
                 col = coord[1]
@@ -102,8 +109,9 @@ class Board:
                 next_cell_mov = self.cells[row][col]
 
                 if mouse_pos == coord and not next_cell_mov.has_piece():
-                    selected_dice = new_pos - cell_numb
+                    selected_dice = new_pos - cell_numb if cond else new_pos + 1
                     Board.plays.remove(selected_dice)
+                    piece.acc += selected_dice
                     self.move_piece(piece, mouse_pos)
                     break
 
@@ -155,7 +163,7 @@ class Board:
         piece = dragger.piece
         while Board.plays:
             valid_moves = list(filter(lambda dice_result: piece.acc + dice_result >= 80, Board.plays))
-            if valid_moves: self.meta_move(dragger, valid_moves)
+            if valid_moves and piece.state == Piece.STATE_IN_GAME: self.meta_move(dragger, valid_moves)
             else: self.normal_move(dragger)
             break
  

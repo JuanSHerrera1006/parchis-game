@@ -33,10 +33,8 @@ class Piece:
         self.state = state
         self.acc = 0
 
-    def get_actual_pos(self, next_moves=[]):
-
-        cond = [next_move + self.acc >= 80 for next_move in next_moves]
-        items = GOALS[self.color].items() if any(cond) else BOARD_MAP.items()
+    def get_actual_pos(self, is_meta=False):
+        items = GOALS[self.color].items() if is_meta else BOARD_MAP.items()
 
         for cell_numb, coords in items:
             for idx, coord in enumerate(coords, start=0):
@@ -44,7 +42,7 @@ class Piece:
                     return (cell_numb, idx)
         return None
 
-    def render(self, x, y, screen, size=(30, 30)):
+    def render(self, x, y, screen, size=(15, 15)):
         img = pygame.image.load(self.texture)
         img = pygame.transform.scale(img, size) 
         img_center = (x + CELL_SIZE // 2, y + CELL_SIZE // 2)
