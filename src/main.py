@@ -21,6 +21,5 @@ class Main:
         pygame.quit()
         sys.exit()
             
-
 main = Main()
 main.loop()
