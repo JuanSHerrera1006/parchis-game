@@ -26,7 +26,7 @@ class Game():
 
     def roll_dices(self):
         self.dices_result = [dice.calculate_result() for dice in self.dices]
-        Board.plays = self.dices_result
+        Board.plays = self.dices_result.copy()
 
     def check_pair(self, dices_result):
         return len(set(dices_result)) == 1
@@ -105,26 +105,36 @@ class Game():
                     dragger.update_mouse(event.pos)
                     self.render(screen)
                     dragger.update_blit(screen)
-            
-            elif event.type == pygame.K_SPACE:
-                if self.check_pair(self.dices_result):
-                    is_out_piece = self.leave_piece_base()
-                    if not is_out_piece:
-                        self.dices_result = []
-                self.render(screen)
 
-                
             elif event.type == pygame.MOUSEBUTTONUP:
                 if dragger.piece != None:
                     board.valid_move(dragger)
                 dragger.undrag_piece()
 
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+
+                    if self.dices_result:
+                        print(self.dices_result)
+
+                    if self.check_pair(self.dices_result):
+                        is_out_piece = self.leave_piece_base()
+                        if not is_out_piece:
+                            self.dices_result = []
+                        else:
+                            Board.plays = []
+
+                    if not self.check_pieces_in_game():
+                        Board.plays = [] 
+                    self.render(screen)
+
             elif event.type == pygame.QUIT:
                 return False
         
         if not Board.plays:
-            self.next_turn()
-
+            if self.dices_result:
+                self.next_turn()
+            self.roll_dices()
         pygame.display.update()
 
         return True

@@ -1,4 +1,4 @@
-from constants import BOARD_MAP, CELL_SIZE, PIECE_IMAGE_PATHS, INITIAL_POS
+from constants import BOARD_MAP, CELL_SIZE, GOALS, PIECE_IMAGE_PATHS, INITIAL_POS
 from random import randint
 import os
 import pygame
@@ -31,14 +31,17 @@ class Piece:
         self.texture_rect = texture_rect
         self.texture = os.path.join(os.path.pardir, PIECE_IMAGE_PATHS[self.color]) 
         self.state = state
+        self.acc = 0
 
-    def get_actual_pos(self):
-        row, col = self.coord
-        for cell_numb, coord in BOARD_MAP.items():
-            row_map = coord[0]
-            col_map = coord[1]
-            if row_map == row and col_map == col:
-                return cell_numb
+    def get_actual_pos(self, next_moves=[]):
+
+        cond = [next_move + self.acc >= 80 for next_move in next_moves]
+        items = GOALS[self.color].items() if any(cond) else BOARD_MAP.items()
+
+        for cell_numb, coords in items:
+            for idx, coord in enumerate(coords, start=0):
+                if self.coord == coord: 
+                    return (cell_numb, idx)
         return None
 
     def render(self, x, y, screen, size=(30, 30)):

@@ -1,5 +1,5 @@
-from constants import *
 from player import Piece
+from constants import *
 import pygame
 import os
 
@@ -70,23 +70,93 @@ class Board:
         self.cells[row][col].quit_piece()
         self.cells[new_pos[0]][new_pos[1]].set_piece(piece)
 
+    def check_rival_pos(self, new_pos, coords, piece):
+        if new_pos in SECURE_CELLS:
+            return None
+
+        for coord in coords:
+            if self.cells[coord[0]][coord[1]].has_piece():
+                other_piece = self.cells[coord[0]][coord[1]].piece
+                if other_piece.color != piece.color:
+                    return coord
+        return None
+
+    def meta_move(self, dragger, valid_moves):
+        piece = dragger.piece
+        META_MAP = GOALS[piece.color]
+        cell_numb, _ = piece.get_actual_pos(valid_moves)
+        possible_mov = [(cell_numb + dice_result) for dice_result in valid_moves]
+        map_coord = [(i, META_MAP[i]) for i in possible_mov]
+         
+        drag_row = dragger.mouseX // CELL_SIZE
+        drag_col = dragger.mouseY // CELL_SIZE
+
+        for new_pos, coords in map_coord:
+            if new_pos >= 9:
+                pass
+            for coord in coords:
+                row = coord[0]
+                col = coord[1]
+
+                mouse_pos = (drag_row, drag_col)
+                next_cell_mov = self.cells[row][col]
+
+                if mouse_pos == coord and not next_cell_mov.has_piece():
+                    selected_dice = new_pos - cell_numb
+                    Board.plays.remove(selected_dice)
+                    self.move_piece(piece, mouse_pos)
+                    break
+
+    def normal_move(self, dragger):
+        piece = dragger.piece
+        cell_numb, _ = piece.get_actual_pos()
+        possible_mov = [(cell_numb + dice_result) % 84 for dice_result in Board.plays]
+        map_coord = [(i, BOARD_MAP[i]) for i in possible_mov]
+        
+        drag_row = dragger.mouseX // CELL_SIZE
+        drag_col = dragger.mouseY // CELL_SIZE
+        
+        for new_pos, coords in map_coord:
+            check_enemy_pos = self.check_rival_pos(new_pos, coords, piece)
+            for coord in coords:
+                row = coord[0]
+                col = coord[1]
+                if (drag_row, drag_col) == coord:
+                    if check_enemy_pos != None:
+                        other_piece = self.cells[check_enemy_pos[0]][check_enemy_pos[1]].piece
+                        for pos in INITIAL_POS[other_piece.color]:
+                            pos_row, pos_col = pos
+                            if not self.cells[pos_row][pos_col].has_piece():
+                                other_piece.state = Piece.STATE_CAPTURED
+                                self.move_piece(other_piece, pos)
+                                self.cells[check_enemy_pos[0]][check_enemy_pos[1]].quit_piece() 
+                                break
+
+                        selected_dice = new_pos - piece.get_actual_pos()[0]
+                        selected_dice = 84 - piece.get_actual_pos()[0] + new_pos if selected_dice < 0 else selected_dice
+                        Board.plays.remove(selected_dice)
+                        self.move_piece(piece, (drag_row, drag_col))
+                        piece.acc += selected_dice
+                        break
+                    
+                    selected_dice = new_pos - piece.get_actual_pos()[0]
+                    selected_dice = 84 - piece.get_actual_pos()[0] + new_pos if selected_dice < 0 else selected_dice
+                    new_pos = (drag_row, drag_col) if not self.cells[row][col].has_piece() and check_enemy_pos == None else piece.coord 
+                    
+                    if piece.coord != new_pos:
+                        Board.plays.remove(selected_dice)
+
+                    self.move_piece(piece, new_pos)
+                    piece.acc += selected_dice
+                    break
+                break
 
     def valid_move(self, dragger):
         piece = dragger.piece
         while Board.plays:
-            possible_mov = [(piece.get_actual_pos() + dice_result) % 84 for dice_result in Board.dices_result]
-            map_coord = [(i, BOARD_MAP[i]) for i in possible_mov]
-            
-            drag_row = dragger.mouseX // CELL_SIZE
-            drag_col = dragger.mouseY // CELL_SIZE
-            
-            for idx, coord in map_coord:
-                if (drag_row, drag_col) == coord:
-                    selected_dice = idx - piece.get_actual_pos()
-                    selected_dice = 84 - piece.get_actual_pos() + idx if selected_dice < 0 else selected_dice
-                    self.move_piece(piece, (drag_row, drag_col))
-                    Board.plays.remove(selected_dice)
-                    break
+            valid_moves = list(filter(lambda dice_result: piece.acc + dice_result >= 80, Board.plays))
+            if valid_moves: self.meta_move(dragger, valid_moves)
+            else: self.normal_move(dragger)
             break
  
     def render(self, screen, dragger):
@@ -97,7 +167,6 @@ class Board:
                 # Get coordinates
                 x = self.cells[row][col].row
                 y = self.cells[row][col].col
-                
                 if self.cells[row][col].has_piece():
                     piece = self.cells[row][col].piece
                     if piece is not dragger.piece:
